@@ -15,9 +15,15 @@ jobs:
     - uses: actions/checkout@v3
     - name: release
       run: echo "world" > test.txt
+    - name: make
+      run: cd src/c && USE_NPY=1 make -f Makefile.gmake
+    - name: make install
+      run: cd src/c && USE_NPY=1 make -f Makefile.gmake install
+    - name: make prolog
+      run: cd src/prolog && make install 
     - name: package
       run: cd tools && sh init_package.sh
-    - name: package
+    - name: zipping package
       run: cd tools && zip -r prism_latest_dev.zip prism/
     - name: Get release
       id: get_release
