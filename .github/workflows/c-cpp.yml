@@ -16,6 +16,8 @@ jobs:
     - name: Install
       run: sudo apt-get install -y protobuf-compiler libprotoc-dev
     - name: make
+      run: cd src/c/external && sh generate.sh
+    - name: make
       run: cd src/c && USE_NPY=1　USE_H5=1 USE_PB=1 make -f Makefile.gmake
     - name: make install
       run: cd src/c && USE_NPY=1 make -f Makefile.gmake install
