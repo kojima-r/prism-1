@@ -22,6 +22,7 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
     - name: Release
       uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
       with:
         files: test.txt
+        tag_name: refs/heads/master
+      
