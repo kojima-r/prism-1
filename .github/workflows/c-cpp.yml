@@ -13,9 +13,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Install
+    - name: Install PB
       run: sudo apt-get install -y protobuf-compiler libprotoc-dev
-    - name: make
+    - name: Install H5
+      run: sudo apt-get install -y libhdf5-serial-dev
+    - name: generate PB code
       run: cd src/c/external && sh generate.sh
     - name: make
       run: cd src/c && USE_NPY=1 USE_H5=1 USE_PB=1 make -f Makefile.gmake
