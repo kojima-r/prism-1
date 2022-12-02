@@ -24,7 +24,7 @@ jobs:
     - name: package
       run: cd tools && sh init_package.sh
     - name: zipping package
-      run: cd tools && zip -r prism_latest_dev.zip prism/
+      run: cd tools && zip -r prism_linux_latest_dev.zip prism/
     - name: Get release
       id: get_release
       uses: bruceadams/get-release@v1.3.2
