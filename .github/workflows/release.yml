@@ -30,3 +30,4 @@ jobs:
         asset_path: ./test.txt
         asset_name: test.txt
         asset_content_type: application/zip
+        overwrite: true
