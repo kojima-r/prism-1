@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install
-      run: apt-get install protobuf-compiler libprotoc-dev
+      run: sudo apt-get install -y protobuf-compiler libprotoc-dev
     - name: make
       run: cd src/c && USE_NPY=1　USE_H5=1 USE_PB=1 make -f Makefile.gmake
     - name: make install
