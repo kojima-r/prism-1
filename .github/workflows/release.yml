@@ -13,8 +13,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: release
-      run: echo "world" > test.txt
     - name: make
       run: cd src/c && USE_NPY=1 make -f Makefile.gmake
     - name: make install
