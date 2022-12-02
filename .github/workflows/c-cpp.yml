@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: make
-      run: cd src/c && USE_NPY=1 make -f Makefile.gmake
+      run: cd src/c && USE_NPY=1　USE_H5=1 USE_PB=1 make -f Makefile.gmake
     - name: make install
       run: cd src/c && USE_NPY=1 make -f Makefile.gmake install
     - name: make prolog
