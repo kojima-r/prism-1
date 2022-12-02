@@ -17,7 +17,7 @@ jobs:
       run: echo "world" > test.txt
     - name: Get release
       id: get_release
-      uses: kojima-r/prism-1@refs/heads/master
+      uses: bruceadams/get-release@v1.3.2
       env:
         GITHUB_TOKEN: ${{ github.token }}
     - name: Upload Release Asset
