@@ -36,7 +36,9 @@ def run_subgoal(g, X_subgoal,mapping_index,n_iter=1000, lr=0.5, gpu=False,verbos
   gg=g["node"]
   gI= gg["new_index"]
   #print(node2str2(gg, mapping_index,mapping_values),"<=>")
+  
   out={}
+  recons={}
   if len(g["paths"])>0:
     in_components=[]
     node_lists=[]
@@ -62,7 +64,8 @@ def run_subgoal(g, X_subgoal,mapping_index,n_iter=1000, lr=0.5, gpu=False,verbos
       Q2_=legendre_decomp.module_mba.recons_nbody(X_out, len(X_subgoal.shape),gpu=False)
       X_outs.append(X_out)
       Q2+=Q2_*comp.pi
-
+    goal_s=node2str(gg, verb_index, mapping_index)
+    recons[goal_s]=(Q, Q2, scaleX)
     if verbose_ld:
       #MAE between P and Q
       print("P-Q",np.mean(np.abs(Q-P)))
@@ -79,12 +82,13 @@ def run_subgoal(g, X_subgoal,mapping_index,n_iter=1000, lr=0.5, gpu=False,verbos
         if verbose:
           print(node_s,":",k,"=> shape:",x.shape)
         out[node_s]=x
-    return out
+    return out,recons
   return None
 
 def run_mba(goals, X_goal, n_iter=1000, lr=0.5, gpu=False, verbose=False, verbose_ld=False):
   mapping_index =remap_index(goals)
   goal_dict={}
+  recons_dict={}
   verb_index=False
   for g in goals[::-1]:
     gg=g["node"]
@@ -95,9 +99,10 @@ def run_mba(goals, X_goal, n_iter=1000, lr=0.5, gpu=False, verbose=False, verbos
       X_subgoal=goal_dict[g_node_s]
     else:
       X_subgoal=X_goal
-    o=run_subgoal(g, X_subgoal,mapping_index,n_iter, lr, gpu,verbose,verbose_ld)
+    o,recons=run_subgoal(g, X_subgoal,mapping_index,n_iter, lr, gpu,verbose,verbose_ld)
     goal_dict.update(o)
-  return goal_dict
+    recons_dict.update(recons)
+  return goal_dict,recons_dict
 
 def run(X, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_expl=False, verbose_ld=False):
   obj=json.load(open(expl_filename))
@@ -108,5 +113,5 @@ def run(X, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_
   mapping_index =remap_index(goals)
   if verbose_expl:
     print_expl(goals,True,mapping_index)
-  goal_dict=run_mba(goals, X, n_iter=n_iter, lr=lr, gpu=gpu, verbose=verbose, verbose_ld=verbose_ld)
-  return goal_dict
+  goal_dict,recons_dict=run_mba(goals, X, n_iter=n_iter, lr=lr, gpu=gpu, verbose=verbose, verbose_ld=verbose_ld)
+  return goal_dict,recons_dict
