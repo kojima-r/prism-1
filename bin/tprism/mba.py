@@ -52,7 +52,10 @@ def run_subgoal(g, X_subgoal,mapping_index,n_iter=1000, lr=0.5, gpu=False,verbos
         print(tuple(gI),"=>",I)
       I2=local_index_remap(gI,I)
       #print([i for i in range(len(gI))],"=>",I2)
-      in_components.append(legendre_decomp.LDComponent(I2))
+      ldc=legendre_decomp.LDComponent(I2)
+      ldc.node=arr1s
+      ldc.sw=arr2s
+      in_components.append(ldc)
       node_lists.append(arr1s+arr2s)
     # LD
     all_history_kl, scaleX, P, Q, components =legendre_decomp.MixLD_MBA(
@@ -65,7 +68,7 @@ def run_subgoal(g, X_subgoal,mapping_index,n_iter=1000, lr=0.5, gpu=False,verbos
       X_outs.append(X_out)
       Q2+=Q2_*comp.pi
     goal_s=node2str(gg, verb_index, mapping_index)
-    recons[goal_s]=(Q, Q2, scaleX)
+    recons[goal_s]=(Q, Q2, scaleX, components)
     if verbose_ld:
       #MAE between P and Q
       print("P-Q",np.mean(np.abs(Q-P)))
@@ -104,7 +107,7 @@ def run_mba(goals, X_goal, n_iter=1000, lr=0.5, gpu=False, verbose=False, verbos
     recons_dict.update(recons)
   return goal_dict,recons_dict
 
-def run(X, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_expl=False, verbose_ld=False):
+def run(X, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_expl=False, verbose_ld=False, verbose_recons=False):
   obj=json.load(open(expl_filename))
   goals=obj['goals']
   if verbose_expl:
@@ -114,4 +117,36 @@ def run(X, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_
   if verbose_expl:
     print_expl(goals,True,mapping_index)
   goal_dict,recons_dict=run_mba(goals, X, n_iter=n_iter, lr=lr, gpu=gpu, verbose=verbose, verbose_ld=verbose_ld)
-  return goal_dict,recons_dict
+  recons_out=recons(goals, recons_dict, verbose=verbose_recons)
+  
+  return goal_dict,recons_dict,recons_out
+
+
+def recons(goals, recons_dict, verbose=False):
+  recons_out={}
+  for g in goals:
+      gg=g["node"]
+      g_node_s=node2str(gg,False, None)
+      Q,Q2,scaleX,components=recons_dict[g_node_s]
+      S=Q.shape
+      if verbose:
+        print(g_node_s,"  shape =",S)
+      Q_out=np.zeros_like(components[0].Q)
+      for comp in components:
+          X_out=legendre_decomp.module_mba.compute_nbody(comp.theta,S,I_x=comp.I,gpu=False)
+          for i,n in enumerate(comp.node):
+              s,x=X_out[i]
+              if len(s)!=len(recons_out[n].shape):
+                  print(s,n,recons_out[n].shape)
+              X_out[i]=(s, recons_out[n])
+          Q_out_=legendre_decomp.module_mba.recons_nbody(X_out, len(S),gpu=False)
+          Q_out+=Q_out_*comp.pi
+          if verbose:
+            print(">>",comp.theta.shape )
+            print("  ",comp.I )
+            print("  ",comp.node+comp.sw)
+            print("  ",[(s,"shape={}".format(x.shape)) for s, x in X_out])
+      #print(Q_out)
+      recons_out[g_node_s]=Q_out*scaleX
+  return recons_out
+
