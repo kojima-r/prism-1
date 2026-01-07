@@ -107,38 +107,55 @@ def run_mba(goals, X_goal, n_iter=1000, lr=0.5, gpu=False, verbose=False, verbos
     recons_dict.update(recons)
   return goal_dict,recons_dict
 
-def run(X, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_expl=False, verbose_ld=False, verbose_recons=False):
+def transpose(X, src_index, to_index):
+  mapping={e:i for i, e in enumerate(src_index)}
+  trans=[mapping[e] for e in to_index]
+  print(trans)
+  return np.transpose(X, trans)
+  
+def run(X, X_index, expl_filename, n_iter=1000, lr=0.5, gpu=False, verbose=False,verbose_expl=False, verbose_ld=False, verbose_recons=False):
   obj=json.load(open(expl_filename))
   goals=obj['goals']
   if verbose_expl:
     print_expl(goals,verb_index=True)
     print("===")
   mapping_index =remap_index(goals)
+  # input transpose
+  expl_index=goals[-1]['node']['new_index']
+  X_ = transpose(X, X_index, expl_index)
+  # run MBA
   if verbose_expl:
     print_expl(goals,True,mapping_index)
-  goal_dict,recons_dict=run_mba(goals, X, n_iter=n_iter, lr=lr, gpu=gpu, verbose=verbose, verbose_ld=verbose_ld)
-  recons_out=recons(goals, recons_dict, verbose=verbose_recons)
-  
+  goal_dict,recons_dict=run_mba(goals, X_, n_iter=n_iter, lr=lr, gpu=gpu, verbose=verbose, verbose_ld=verbose_ld)
+  recons_out, last_node=recons(goals, recons_dict, verbose=verbose_recons)
+  # output transpose
+  recons_index, recons_X=recons_out[last_node]  
+  X_ = transpose(recons_X, recons_index, X_index)
+  recons_out[last_node]=(X_index, X_)
   return goal_dict,recons_dict,recons_out
 
 
 def recons(goals, recons_dict, verbose=False):
   recons_out={}
+  last_g_node_s=None
   for g in goals:
       gg=g["node"]
+      gI=gg["new_index"]
       g_node_s=node2str(gg,False, None)
+      last_g_node_s=g_node_s
       Q,Q2,scaleX,components=recons_dict[g_node_s]
       S=Q.shape
       if verbose:
-        print(g_node_s,"  shape =",S)
+        print(g_node_s,"  shape =",S,"  index=",gI)
       Q_out=np.zeros_like(components[0].Q)
       for comp in components:
           X_out=legendre_decomp.module_mba.compute_nbody(comp.theta,S,I_x=comp.I,gpu=False)
           for i,n in enumerate(comp.node):
               s,x=X_out[i]
-              if len(s)!=len(recons_out[n].shape):
-                  print(s,n,recons_out[n].shape)
-              X_out[i]=(s, recons_out[n])
+              _, new_x=recons_out[n]
+              if len(s)!=len(new_x.shape):
+                  print(s,n,new_x.shape)
+              X_out[i]=(s, new_x)
           Q_out_=legendre_decomp.module_mba.recons_nbody(X_out, len(S),gpu=False)
           Q_out+=Q_out_*comp.pi
           if verbose:
@@ -147,6 +164,6 @@ def recons(goals, recons_dict, verbose=False):
             print("  ",comp.node+comp.sw)
             print("  ",[(s,"shape={}".format(x.shape)) for s, x in X_out])
       #print(Q_out)
-      recons_out[g_node_s]=Q_out*scaleX
-  return recons_out
+      recons_out[g_node_s]=(tuple(gI), Q_out*scaleX)
+  return recons_out, last_g_node_s
 
